@@ -1,0 +1,122 @@
+// Exercise 7.10
+// Rewrite the Game of Life rules as follows:
+// Overpopulation: If the cell has four or more alive neighbors, it has a 80% chance of dying.
+// Loneliness: If the cell has one or fewer alive neighbors, it has a 60% chance of dying. Etc.
+
+GOL gol;
+
+void setup() {
+  size(640, 640);
+  gol = new GOL();
+}
+
+void draw() {
+  background(255);
+
+  gol.generate();
+  gol.display();
+}
+
+void mousePressed() {
+  gol.init();
+}
+
+class Cell {
+
+  float x, y;
+  float w;
+  
+  int state;
+  int previous;
+
+  Cell(float x_, float y_, float w_) {
+    x = x_;
+    y = y_;
+    w = w_;
+    
+    state = int(random(2));
+    previous = state;
+  }
+  
+  void savePrevious() {
+    previous = state; 
+  }
+
+  void newState(int s) {
+    state = s;
+  }
+
+  void display() {
+    if (previous == 0 && state == 1) fill(255,126,0);
+    else if (state == 1) fill(59,122,87);
+    else if (previous == 1 && state == 0) fill(124,185,232);
+    else fill(255); 
+    stroke(0);
+    rect(x, y, w, w);
+  }
+}
+
+class GOL {
+
+  int w = 8;
+  int columns, rows;
+
+  Cell[][] board;
+
+  GOL() {
+    columns = width/w;
+    rows = height/w;
+    board = new Cell[columns][rows];
+    init();
+  }
+
+  void init() {
+    for (int i = 0; i < columns; i++) {
+      for (int j = 0; j < rows; j++) {
+        board[i][j] = new Cell(i*w, j*w, w);
+      }
+    }
+  }
+
+  void generate() {
+    for ( int i = 0; i < columns; i++) {
+      for ( int j = 0; j < rows; j++) {
+        board[i][j].savePrevious();
+      }
+    }
+
+    for (int x = 0; x < columns; x++) {
+      for (int y = 0; y < rows; y++) {
+
+        int neighbors = 0;
+        for (int i = -1; i <= 1; i++) {
+          for (int j = -1; j <= 1; j++) {
+            //wrap around as a one-liner
+            neighbors += board[(x+i+columns)%columns][(y+j+rows)%rows].previous;
+          }
+        }
+
+        neighbors -= board[x][y].previous;
+
+        // Rules of Life
+        // dies from loneliness
+        // If the cell has one or fewer alive neighbors, it has a 60% chance of dying
+        if      ((board[x][y].state == 1) && (neighbors <= 1) && (random(100) <= 60)) board[x][y].newState(0);
+        //dies from overpopulation
+        //If the cell has four or more alive neighbors, it has a 80% chance of dying.
+        else if ((board[x][y].state == 1) && (neighbors >= 4) && (random (100) <= 80)) board[x][y].newState(0);
+
+        // Reproduction from exactly three live neighbors
+        else if ((board[x][y].state == 0) && (neighbors == 3)) board[x][y].newState(1);
+      }
+    }
+  }
+
+  void display() {
+    for ( int i = 0; i < columns; i++) {
+      for ( int j = 0; j < rows; j++) {
+        board[i][j].display();
+      }
+    }
+  }
+}
