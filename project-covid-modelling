@@ -317,3 +317,45 @@ class Infection {
     return ac.hours - infectionHours >= INFECTION_ENDS;
   }
 }
+
+
+class Place {
+
+  int people_place_has_drawn;
+
+  int x, y, w, h;
+  String name;
+  int rotation_amount;
+
+  Place(String name_, int x_, int y_, int w_, int h_, int rotation_amount_) {
+    name = name_;
+    x = x_;
+    y = y_;
+    w = w_;
+    h = h_;
+    rotation_amount = rotation_amount_;
+  }
+
+  void draw() {
+    stroke(0);
+    strokeWeight(1);
+    fill(230);
+    rectMode(CORNER);
+    pushMatrix();
+    translate(x,y);
+    rotate(radians(rotation_amount));
+    rect(0, 0, w, h);
+    popMatrix();
+    people_place_has_drawn = 0;
+  }
+
+  PVector whereToPutPerson() {
+    int people_in_row = w / 15;
+    int column = people_place_has_drawn % people_in_row;
+    int row = people_place_has_drawn / people_in_row;
+    float person_x = column * 15 + 15;
+    float person_y = row * 15 + 15;
+    people_place_has_drawn++;
+    return new PVector(person_x, person_y);
+  }
+}
