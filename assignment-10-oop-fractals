@@ -1,0 +1,166 @@
+// Fractal trees code
+static final int branchesCount = 5;
+static final float angle = radians(15);
+static final int maturity = 75;
+
+class Branch {
+  float length;
+  //  int depth; // how many layers of branch underneath it
+  ArrayList<Branch> branches;
+
+  Branch (float length_) {
+    length = length_;
+    //    depth = depth_;
+    branches = new ArrayList<Branch>();
+  }
+
+  void draw() {
+    // draw ourselves
+    line(0, 0, 0, length);
+    // draw little bud
+    pushMatrix();
+    translate(0, length);
+    rectMode(CENTER);
+    rect(0, 0, 5, 5);
+    // draw our children
+    float childAngle = -2.0 * angle;
+ 
+    for (Branch child : branches) {
+      pushMatrix();
+      rotate(childAngle);
+      child.draw();
+      popMatrix();
+      childAngle += angle;
+    }
+    popMatrix();
+
+  }
+
+  void grow() {
+    float newLength = length + 1;
+
+    if (newLength > maturity) {
+      // we are mature, grow our children
+      for (Branch child : branches) {
+        child.grow();
+      }
+    } else if (newLength == maturity) {
+      // we have just gotten to maturity, create our children
+      for (int i = 0; i < branchesCount; ++i) {
+        branches.add(new Branch(0));
+      }
+      length = newLength;
+    } else {
+      // we are not mature, so we just grow ourselves
+      length = newLength;
+    }
+
+  }
+}
+
+ArrayList<Branch> trees = new ArrayList<Branch>();
+float size = 50;
+
+void setup() {
+  size(600, 400);
+  for (int i = 0; i <5; ++i) {
+    trees.add(new Branch(size));
+  }
+}
+
+void draw() {
+  background (255);
+  translate (100, 400);
+  rotate(radians(180));
+  for (int i = 0; i < 5; ++i) {
+    trees.get(i).draw();
+    trees.get(i).grow();
+    translate(-100, 0);
+  }
+}
+
+
+
+
+
+// OOP Fractal trees
+// This code illustrates a fully object oriented approach to building fractal trees.
+// It also illustrates heavy use of pushMatrix, translate, rotate, and popMatrix.
+// We made various embellishments during class (such as starting with five trees
+// instead of one, and making the growth more organic). The next embellishment
+// would be to have the simulation terminate after some reasonable amount of growth,
+// because it is going to turn into such a tangle of branches, each represented by
+// an object, that it will bog the computer down after 20 or so branchings.
+
+static final int branchesCount = 3;
+static final float childAngleSeparation = radians(30);
+static final float maturity = 60.0;
+
+class Branch {
+  float length;
+  ArrayList<Branch> branches;
+
+  Branch(float length_) {
+    length = length_;
+    branches = new ArrayList<Branch>();
+  }
+
+  void draw() {
+    // draw ourselves
+    line(0, 0, 0, length);
+    // draw our children
+    pushMatrix();
+    translate(0, length);
+    rectMode(CENTER);
+    rect(0, 0, 5, 5);
+    float childAngle = -1.0 * childAngleSeparation;
+    for (Branch child : branches) {
+      pushMatrix();
+      rotate(childAngle);
+      child.draw();
+      popMatrix();
+      childAngle += childAngleSeparation;
+    }
+    popMatrix();
+    // we need to draw our children
+  }
+
+  void grow() {
+    float newLength = length + 0.25;
+
+    if (newLength > maturity) {
+      // resize our children
+      for (Branch child : branches) {
+        child.grow();
+      }
+    } else if (newLength == maturity) {
+      for (int i = 0; i < branchesCount; ++i) {
+        branches.add(new Branch(0));
+      }
+      length = newLength;
+    } else {
+      length = newLength;
+    }
+  }
+}
+
+ArrayList<Branch> trees = new ArrayList<Branch>();
+
+void setup() {
+  size(600, 400);
+  for (int i = 0; i < 5; ++i) {
+    trees.add(new Branch(0.25));
+  }
+}
+
+void draw() {
+  background(255);
+  for (int i = 0; i < 5; ++i) {
+    pushMatrix();
+    translate((i + 1) * 100, 400);
+    rotate(radians(180));
+    trees.get(i).draw();
+    popMatrix();
+    trees.get(i).grow();
+  }
+}
