@@ -1,0 +1,166 @@
+// rendering final project - snake game
+
+// rules of the game
+// 1) if the snake hit the edges, it appears from the other end.
+// 2) snake length + 1 unit when it eats food
+// 3) game_score + 1 when snake eats food
+
+Snake snake;
+Food food;
+int score;
+
+void setup() {
+  size(600, 400);
+  frameRate(8);
+  snake = new Snake();
+  food = new Food();
+  rectMode(CENTER);
+
+  score = 0;
+}
+
+void draw() {
+  background(250, 250, 250);
+  write_score();
+  snake.run();
+  food.display();
+
+  // implement the rules of the game
+  if ( dist(food.xpos, food.ypos, snake.xpos.get(0), snake.ypos.get(0)) < snake.sidelength ) {
+    food.reset(); // generate new food
+    snake.grow(); // snake grows longer after eating food
+  }
+
+  if (snake.length > score) {
+    score= snake.length;
+  }
+}
+
+
+void keyPressed() {
+  if (key == CODED) {
+    if (keyCode == LEFT) {
+      snake.direction = "left";
+    }
+    if (keyCode == RIGHT) {
+      snake.direction = "right";
+    }
+    if (keyCode == UP) {
+      snake.direction = "up";
+    }
+    if (keyCode == DOWN) {
+      snake.direction = "down";
+    }
+  }
+}
+
+
+void write_score() {
+  stroke(0);
+  textSize(17);
+  text( "Score =  " + score, 50, 50);
+}
+
+class Food {
+  PVector food_location;
+  float xpos, ypos;
+
+  //constructor for a single food item
+  Food() {
+    xpos = random(100, width - 10);
+    ypos = random(100, height - 10);
+  }
+
+  void display() {
+    fill(0, 128, 0);
+    ellipse(xpos, ypos, 10, 10);
+  }
+
+  void reset() {
+    xpos = random(100, width - 100);
+    ypos = random(100, height - 100);
+  }
+}
+
+class Snake {
+  int length;
+  float sidelength;
+  String direction;
+  ArrayList <Float> xpos, ypos;
+
+  Snake() {
+    length = 1; // snake starts with being 1 unit long
+    sidelength = 10;
+    direction = "right";
+    xpos = new ArrayList();
+    ypos = new ArrayList();
+    xpos.add(random(width));
+    ypos.add(random(height));
+  }
+
+  // snake moving! how snake turns - the snake head turns first and then the body follows
+  // solved by using sidelength!
+  void move() {
+    for (int i = length - 1; i > 0; i = i -1 ) {
+      xpos.set(i, xpos.get(i - 1));
+      ypos.set(i, ypos.get(i - 1));
+    }
+    if (direction == "left") {
+      xpos.set(0, xpos.get(0) - sidelength);
+    }
+    if (direction == "right") {
+      xpos.set(0, xpos.get(0) + sidelength);
+    }
+
+    if (direction == "up") {
+      ypos.set(0, ypos.get(0) - sidelength);
+    }
+
+    if (direction == "down") {
+      ypos.set(0, ypos.get(0) + sidelength);
+    }
+    xpos.set(0, (xpos.get(0) + width) % width);
+    ypos.set(0, (ypos.get(0) + height) % height);
+
+
+    if (checkEdges() == true) {
+      length = 1;
+      float xtemp = xpos.get(0);
+      float ytemp = ypos.get(0);
+      xpos.clear();
+      ypos.clear();
+      xpos.add(xtemp);
+      ypos.add(ytemp);
+    }
+  }
+
+  void display() {
+    for (int i = 0; i <length; i++) {
+      stroke(255);
+      fill(0, 32, 255);
+      rect(xpos.get(i), ypos.get(i), sidelength, sidelength);
+    }
+  }
+
+
+  void grow() {
+    xpos.add(xpos.get(length-1) + sidelength);
+    ypos.add(ypos.get(length-1) + sidelength);
+    length ++;
+  }
+
+  // when snake hits the wall
+  boolean checkEdges () {
+    for (int i = 1; i < length; i++) {
+      if ( dist(xpos.get(0), ypos.get(0), xpos.get(i), ypos.get(i)) < sidelength) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void run() {
+    move();
+    display();
+  }
+}
