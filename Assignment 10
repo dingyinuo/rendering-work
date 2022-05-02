@@ -1,0 +1,16 @@
+// Assignment 10: Exercises 8.10 and 8.13
+
+// Exercise 8.10
+// Set the angles of the branches of the tree according to Perlin noise values. 
+// Adjust the noise values over time to animate the tree. See if you can get it to appear as if it is blowing in the wind.
+
+
+
+
+// Exercise 9.13
+// Exercise 8.13
+// The seminal work in L-systems and plant structures, The Algorithmic Beauty of Plants by Przemysław Prusinkiewicz and Aristid Lindenmayer, 
+// was published in 1990. It is available for free in its entirety online (http://algorithmicbotany.org/papers/#abop). 
+// Chapter 1 describes many sophisticated L-systems with additional drawing rules and available alphabet characters. 
+// In addition, it describes several methods for generating stochastic L-systems. 
+// Expand the L-system example to include one or more additional features described by Prusinkiewicz and Lindenmayer.
