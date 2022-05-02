@@ -1,0 +1,319 @@
+// Project: Modelling the Covid situation in Deep Springs
+
+// The main concepts are person, place, and association.
+// A person can belong to many associations.
+// An association has a meeting schedule, which with the help
+// of the academic calendar allows us to determine if it is meeting.
+// If an association is meeting, and a person belongs to that association,
+// then that meetings place is what that person's place() function returns.
+// If there is a conflict (because the person has multiple associations
+// that are meeting) then the first association in the list wins.
+// If the person is in no associations that are meeting, then place()
+// returns their home.
+
+// The thing that manages the list of places, people, and assciations,
+// is a singleton called community. Although we only have one, the way
+// it is written, we could have more. If we didn't have community, then
+// the functions on community would all need to be global functions, and
+// the three lists that community manages would need to be global variables.
+
+AcademicCalendar ac;
+Community community;
+
+static int last_id = -1;
+
+void setup() {
+  size(1000, 600);
+  ac = new AcademicCalendar();
+  community = new Community();
+}
+
+void draw() {
+  ac.increment();
+  community.increment();
+  community.report();
+  community.draw();
+}
+
+class AcademicCalendar {
+  static final int HOURS_IN_DAY = 24;
+  static final int HOURS_IN_WEEK = 168;
+  static final int HOURS_IN_YEAR = 8760;
+  // let us begin our simulation with the beginning of COVID
+  int hours = 12 * HOURS_IN_WEEK; // COVID really got going on the 12th week of 2020
+  int[] breakWeeks = {
+    0, /* third week of winter break */
+  /* Term 4 */
+    8, 9, /* two-week break */
+  /* Term 5 */
+    17, /* one-week break */
+  /* Term 6 */
+    25,
+  /* Term 1 */
+    33, 34, /* two-week break */
+  /* Term 2 */
+    42, /* Term 3 */
+    50, 51, /* first two weeks of three-week break */
+    52 /* there is actually only one day in week 52 */
+  };
+
+  void increment() {
+    hours++;
+  }
+
+  boolean isAssociationMeeting(Association a) {
+    if (isCampusOnBreak() && !a.meetsDuringBreak) return false;
+    int h = hours % a.frequency;
+    return h >= a.meetingTime && h < a.meetingTime + a.duration;
+  }
+
+  int year() {
+    return 2020 + hours / HOURS_IN_YEAR;
+  }
+
+  int week() {
+    int h = hours % HOURS_IN_YEAR;
+    return h / HOURS_IN_WEEK;
+  }
+
+  boolean isCampusOnBreak() {
+    int w = week();
+    for (int i = 0; i < breakWeeks.length; ++i) {
+      if (w == breakWeeks[i]) return true;
+    }
+    return false;
+  }
+}
+
+class Association {
+  int meetingTime;
+  int duration;
+  int frequency; // either DAILY OR WEEKLY
+  float closeness = 0.5;
+  ArrayList<Person> members = new ArrayList<Person>();
+  boolean meetsDuringBreak = false;
+  Place place;
+
+  Association(Place place_, int meetingTime_, int duration_, int frequency_) {
+    place = place_;
+    meetingTime = meetingTime_;
+    duration = duration_;
+    frequency = frequency_;
+  }
+
+  void expose() {
+    if (!ac.isAssociationMeeting(this)) return;
+    for (Person person : members) {
+      for (Person otherPerson : members) {
+        person.expose(otherPerson, closeness);
+      }
+    }
+  }
+}
+
+
+class Person {
+  Infection infection = null;
+  float immunity = 0.0; // a number between 0 and 1, with 1 being immune
+  float fastiduousness = 0.5; // a number between 0 and 1 with 1 being ultra-hygienic
+  int id;
+  Place home;
+
+  Person(Place home_) {
+    id = ++last_id;
+    home = home_;
+  }
+
+  boolean isInfected() {
+    return infection != null;
+  }
+
+  float infectiousness() {
+    return infection != null ? infection.infectiousness() : 0.0;
+  }
+
+  float slovenliness() {
+    return 1.0 - fastiduousness;
+  }
+
+  float susceptibility() {
+    return 1.0 - immunity;
+  }
+
+  void catchCOVID() {
+    infection = new Infection();
+    immunity = 1.0;
+  }
+
+  void expose(Person otherPerson, float closeness) {
+    if (this != otherPerson && isInfected() && !otherPerson.isInfected()) {
+      float exposureIntensity = closeness * infectiousness() * slovenliness() * otherPerson.slovenliness();
+      if (random(1.0) < exposureIntensity * Infection.HOURLY_R_VALUE) {
+        otherPerson.catchCOVID();
+      }
+    }
+  }
+
+  Place place() {
+    for (Association association : community.associations) {
+      if (ac.isAssociationMeeting(association) && association.members.contains(this)) {
+        return association.place;
+      }
+    }
+    return home;
+  }
+
+  void draw() {
+    ellipseMode(CENTER);
+    pushMatrix();
+    Place place = place();
+    PVector offset = place.whereToPutPerson();
+    translate(place.x, place.y);
+    rotate(radians(place.rotation_amount));
+  
+    stroke(0);
+    if (isInfected()) {
+      fill(255, 0, 0);
+    } else {
+      fill(255);
+    }
+    ellipse(offset.x, offset.y, 10, 10);
+    popMatrix();
+  }
+
+  void age() {
+    if (infection != null && infection.over()) {
+      infection = null;
+    }
+    // 1.00007912952 is 2^(1/8760). Using this number
+    // gives immunity a half-life of one year.
+    immunity /= 1.00007912952;
+  }
+}
+
+class Community {
+  ArrayList<Person> people = new ArrayList<Person>();
+  ArrayList<Association> associations = new ArrayList<Association>();
+  ArrayList<Place> places = new ArrayList<Place>();
+
+  Community() {
+
+    Place MainBuilding = new Place("Main Building", 200, 100, 400, 100, -10);
+    places.add(MainBuilding);
+    Place Dorm = new Place("Dorm", 300, 400, 400, 130, 0);
+    places.add(Dorm);
+    Place BH = new Place("BH", 100, 350, 150, 100, 40);
+    places.add(BH);
+    Place Museum = new Place("Museum", 650, 50, 70, 60, 15);
+    places.add(Museum);
+    Place Shop = new Place("Shop", 750, 0, 50, 30, 15);
+    places.add(Shop);
+    Place Duplex = new Place("Duplex", 50, 250, 70, 70, 15);
+    places.add(Duplex);
+    Place EastDuplex = new Place("East Duplex", 70, 180, 70, 70, 15);
+    places.add(EastDuplex);
+    Place UpFac = new Place("UpFac", 750, 160, 70, 70, -10);
+    places.add(UpFac);
+    Place MidFac = new Place("MidFac", 750, 250, 70, 70, 10);
+    places.add(MidFac);
+    Place Aird = new Place("Aird", 800, 400, 100, 50, -10);
+    places.add(Aird);
+    Place Withrow = new Place("Withrow", 750, 430, 50, 50, -10);
+    places.add(Withrow);
+
+
+    Association endlessMeetings = new Association(MainBuilding, 9, 6, 24);
+    associations.add(endlessMeetings);
+    for (int i = 0; i < 40; i++) {
+      Person person = new Person(Dorm);
+      people.add(person);
+      if (i <= 12) {
+        endlessMeetings.members.add(person);
+      }
+    }
+
+    Association labourMeetings = new Association(BH, 14, 4, 24);
+    associations.add(labourMeetings);
+    for (int i = 0; i < 10; i++) {
+      Person person = new Person(Shop);
+      people.add(person);
+      if (i <= 5) {
+        labourMeetings.members.add(person);
+      }
+    }
+
+    Person patient0 = people.get(12);
+    patient0.catchCOVID();
+  }
+
+  void increment() {
+    for (Association association : associations) {
+      association.expose();
+    }
+    for (Person person : people) {
+      person.age();
+    }
+  }
+
+  void report() {
+    int covidCount = 0;
+    for (Person person : people) {
+      if (person.isInfected()) {
+        ++covidCount;
+      }
+    }
+    println("The community has " + covidCount + " cases.");
+  }
+
+  void draw() {
+    background(255);
+    rectMode(CORNER); // the default
+    stroke(0);
+    for (Place place : places) {
+      place.draw();
+    }
+    for (Person person : people) {
+      person.draw();
+    }
+  }
+}
+
+
+class Infection {
+  static final int INCUBATION_PERIOD = 1 * AcademicCalendar.HOURS_IN_DAY;
+  static final int WORST_OF_IT_ENDS = 4 * AcademicCalendar.HOURS_IN_DAY;
+  static final int INFECTION_ENDS = 14 * AcademicCalendar.HOURS_IN_DAY;
+  static final float HOURLY_R_VALUE = 0.5;
+
+  int infectionHours;
+
+  Infection() {
+    infectionHours = ac.hours;
+  }
+
+  float infectiousness() {
+    // during day 0, not very infectious (incubating)
+    // real infectious during days 1, 2, 3 (inclusive)
+    // steadily declining infectiousness during days 4-13 (inclusive)
+    int delta = ac.hours - infectionHours;
+    float infectiousness;
+    if (delta < AcademicCalendar.HOURS_IN_DAY) {
+      // incubating, low infectiousness
+      infectiousness = 0.2;
+    } else if (delta >= INCUBATION_PERIOD && delta < WORST_OF_IT_ENDS) {
+      // worst of it
+      infectiousness = 1.0;
+    } else if (delta < INFECTION_ENDS) {
+      // recovering
+      infectiousness = (delta - WORST_OF_IT_ENDS) / (INFECTION_ENDS - WORST_OF_IT_ENDS);
+    } else {
+      // recovered
+      infectiousness = 0.0;
+    }
+    return infectiousness;
+  }
+
+  boolean over() {
+    return ac.hours - infectionHours >= INFECTION_ENDS;
+  }
+}
