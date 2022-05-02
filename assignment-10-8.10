@@ -1,0 +1,90 @@
+// Assignment 10: Exercises 8.10 and 8.13
+
+// Exercise 8.10
+// Set the angles of the branches of the tree according to Perlin noise values. 
+// Adjust the noise values over time to animate the tree. See if you can get it to appear as if it is blowing in the wind.
+static final int branchesCount = 5;
+static final float angle = radians(15);
+static final int maturity = 75;
+
+float xoff = 0.0;
+
+class Branch {
+  float length;
+  //  int depth; // how many layers of branch underneath it
+  ArrayList<Branch> branches;
+
+  Branch (float length_) {
+    length = length_;
+    //    depth = depth_;
+    branches = new ArrayList<Branch>();
+  }
+
+  void draw() {
+    // draw ourselves
+    line(0, 0, 0, length);
+    // draw little bud
+    pushMatrix();
+    translate(0, length);
+    rectMode(CENTER);
+    rect(0, 0, 5, 5);
+    // draw our children
+    float childAngle = -2.0 * angle;
+ 
+    for (Branch child : branches) {
+      pushMatrix();
+      rotate(childAngle);
+      child.draw();
+      popMatrix();
+      
+      // adjust to animate the tree!
+      xoff = xoff + 2;
+      childAngle += angle + radians(noise(xoff));
+;
+    }
+    popMatrix();
+
+  }
+
+  void grow() {
+    float newLength = length + 1;
+
+    if (newLength > maturity) {
+      // we are mature, grow our children
+      for (Branch child : branches) {
+        child.grow();
+      }
+    } else if (newLength == maturity) {
+      // we have just gotten to maturity, create our children
+      for (int i = 0; i < branchesCount; ++i) {
+        branches.add(new Branch(0));
+      }
+      length = newLength;
+    } else {
+      // we are not mature, so we just grow ourselves
+      length = newLength;
+    }
+
+  }
+}
+
+ArrayList<Branch> trees = new ArrayList<Branch>();
+float size = 50;
+
+void setup() {
+  size(600, 400);
+  for (int i = 0; i <5; ++i) {
+    trees.add(new Branch(size));
+  }
+}
+
+void draw() {
+  background (255);
+  translate (100, 400);
+  rotate(radians(180));
+  for (int i = 0; i < 5; ++i) {
+    trees.get(i).draw();
+    trees.get(i).grow();
+    translate(-100, 0);
+  }
+}
